@@ -1,0 +1,58 @@
+app.post('/sync/users', async (req, res) => {
+  const users = await db.getAllUsers();
+
+  for (const user of users) {
+    await syncUserToCache(user);
+  }
+
+  // 同期メタデータを保存
+  const now = new Date().toISOString();
+  await redis.set("sync:users:last_updated", now);
+  await redis.set("sync:users:count", users.length.toString());
+
+  res.json({ synced: users.length, last_updated: now });
+  
+});
+
+app.post('/garnet/checkpoint', async (req, res) => {
+  const result = await redis.sendCommand(['BGSAVE']);
+  res.json({ result });
+});
+
+// userRepository.js
+const db = require('./db');
+
+async function getAllUsers() {
+  const sql = `
+    SELECT
+      id,
+      user_id,
+      username,
+      email,
+      organization_id,
+      title_id,
+      title_name,
+      deleted,
+      created_at,
+      updated_at
+    FROM users
+    WHERE deleted = false
+  `;
+  const result = await db.query(sql);
+  return result.rows;
+}
+
+module.exports = { getAllUsers };
+
+async function syncUserToCache(user) {
+  const data = {
+    id: user.id,
+    user_id: user.user_id,
+    organization_id: user.organization_id,
+    title_id: user.title_id,
+    deleted: user.deleted
+  };
+
+  await redis.set(`user:id:${user.user_id}`, JSON.stringify(data));
+  await redis.set(`user:uuid:${user.id}`, JSON.stringify(data));
+}

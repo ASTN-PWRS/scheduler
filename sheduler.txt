@@ -1,0 +1,9 @@
+CREATE TABLE execution_results (
+    id SERIAL PRIMARY KEY,                  -- 自動生成のユニークID
+    script_name VARCHAR(255) NOT NULL,      -- 実行したスクリプト名
+    status VARCHAR(50) NOT NULL,            -- 実行ステータス (成功、失敗など)
+    message TEXT,                           -- 実行結果やエラーメッセージ
+    start_time TIMESTAMP NOT NULL,          -- 実行開始時間
+    end_time TIMESTAMP,                     -- 実行終了時間 (失敗時はNULLの場合も)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- 登録時刻
+);
